@@ -102,6 +102,9 @@ DWORD g_dwMpSize;
 #define PACKET_LOGIN_SEND_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\x45\x00\x8D\x4D\x00\x8B\x75"
 #define PACKET_LOGIN_SEND_MASK_CSNZ "xxxx?x????xx????xxx?x????xxxx?xxxxx?xx????xx?xx?xx"
 
+#define VOXEL_TAB_SIG_CSNZ "\x83\xFE\x00\x0F\x8E\x00\x00\x00\x00\x33\xC9"
+#define VOXEL_TAB_MASK_CSNZ "xx?xx????xx"
+
 float* g_pFreezeTime;
 
 char g_pServerIP[16];
@@ -891,13 +894,13 @@ CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 
 					for (int i = 0; i < size; i++)
 					{
-						int unk = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
+						int id = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
 						std::string vxlURL = readStr((char*)packetBuffer, offset); offset += vxlURL.size() + 1;
 						std::string vmgURL = readStr((char*)packetBuffer, offset); offset += vmgURL.size() + 1;
 
-						char unkStr[19];
-						int unkStrSize = sprintf_s(unkStr, "\t\t{\n\t\t\t\"Unk\": %d,", unk);
-						fwrite(unkStr, unkStrSize, 1, file);
+						char idStr[18];
+						int idStrSize = sprintf_s(idStr, "\t\t{\n\t\t\t\"ID\": %d,", id);
+						fwrite(idStr, idStrSize, 1, file);
 
 						fwrite("\n\t\t\t\"VxlURL\": \"", 15, 1, file);
 						fwrite(vxlURL.c_str(), vxlURL.size(), 1, file);
@@ -1511,6 +1514,17 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 
 		if (g_pEngine)
 			g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
+
+		{
+			DWORD find = FindPattern(VOXEL_TAB_SIG_CSNZ, VOXEL_TAB_MASK_CSNZ, g_dwGameUIBase, g_dwGameUIBase + g_dwGameUISize, 2);
+			if (!find)
+				MessageBox(NULL, "Voxel_Tab == NULL!!!", "Error", MB_OK);
+			else
+			{
+				BYTE patch[] = { 0x00 };
+				WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
+			}
+		}
 	}
 
 	return TRUE;
